@@ -14,7 +14,8 @@ To make a Lamp at home (230 V AC) On / Off using ESP8266, IFTT Google Assistance
 * Jumper Wires
 
 # Circuit Diagram:
-<img width="1295" height="727" alt="image" src="https://github.com/user-attachments/assets/a3e68af3-4caa-413d-9ffe-fb49a49c84b0" />
+<img width="450" height="570" alt="image" src="https://github.com/user-attachments/assets/38d4c84d-cb3e-4c86-bc19-a29fc13377ac" />
+
 
 
 
@@ -28,90 +29,57 @@ When we apply an active high signal to the signal pin of the relay module from a
 
 
 # Program:
-~~~
-#include <Servo.h>
-#include <LiquidCrystal.h>
-
-LiquidCrystal lcd(A1,10,9,6,5,3);
-float value;
-int tmp = A0;
-const int pingPin = 7;
-int servoPin = 8;
-
-Servo servo1;
-
-void setup() {
-  Serial.begin(9600);
-  servo1.attach(servoPin);
-  lcd.begin(16, 2);
-
-  pinMode(2, INPUT);    
-  pinMode(4, OUTPUT);   
-  pinMode(11, OUTPUT);  
-  pinMode(12, OUTPUT);  
-  pinMode(13, OUTPUT);  
-  pinMode(A0, INPUT);   
+```
+#define BLYNK_TEMPLATE_ID "TMPL33AOhHpv3" 
+#define BLYNK_TEMPLATE_NAME "switch light" 
+#define BLYNK_AUTH_TOKEN "oLXGhtWk4j91cXE1q1OG0k_FcZd619vq" 
+#include <ESP8266WiFi.h> 
+#include <Blynk, SimpleEsp8266.h> 
+// WiFi credentials 
+char ssid[] = "Allwin"; 
+char pass[] = "alwn2009"; 
+// Pin definitions for NodeMCU 
+const int relayPins[4] = {D1, D2, D3, D5};  // GPIO pins connected to IN1, IN2, IN3, IN4 on relay module 
+const int switchPins[4] = {D6, D7, 1, 3};  // GPIO1 (TX) for S3 
+// State tracking for switches 
+bool lastSwitchState[4] = {0, 0, 0, 0}; 
+void setup() { 
+Serial.begin(115200); 
+Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass); 
+// Initialize all relay control pins as outputs and set them HIGH to ensure relays are OFF at startup 
+for (int i = 0; i < 4; i++) { 
+pinMode(relayPins[i], OUTPUT); 
+digitalWrite(relayPins[i], HIGH);  // Set HIGH to turn OFF the relays if they are active low 
+pinMode(switchPins[i], INPUT_PULLUP);  // Use internal pull-up resistor 
+} 
+} 
+void loop() { 
+Blynk.run(); 
+for (int i = 0; i < 4; i++) { 
+bool currentSwitchState = !digitalRead(switchPins[i]);  // Read switch state (inverted due to pull-up) 
+// Check if switch state has changed 
+if (currentSwitchState != lastSwitchState[i]) { 
+delay(50);  // Add debounce delay to avoid accidental toggling due to switch noise 
+if (currentSwitchState == !digitalRead(switchPins[i])) {  // Re-check the switch state after delay 
+if (currentSwitchState) { 
+// Toggle relay state 
+digitalWrite(relayPins[i], !digitalRead(relayPins[i])); 
+Blynk.virtualWrite(V1 + i, digitalRead(relayPins[i]) ? 0 : 255);  // Update Blynk app 
+} 
+lastSwitchState[i] = currentSwitchState;  // Update last state 
+} 
+} 
+} 
+} 
+// Blynk app write event handlers for each relay controlled by virtual pins 
+BLYNK_WRITE(V1) { toggleRelay(0, param.asInt()); } 
+BLYNK_WRITE(V2) { toggleRelay(1, param.asInt()); } 
+BLYNK_WRITE(V3) { toggleRelay(2, param.asInt()); } 
+BLYNK_WRITE(V4) { toggleRelay(3, param.asInt()); } 
+void toggleRelay(int relay, int state) { 
+digitalWrite(relayPins[relay], state == 1 ? LOW : HIGH);  // Assume active-low relays 
 }
-
-void loop() {
-  long duration, cm;
-  pinMode(pingPin, OUTPUT);
-  digitalWrite(pingPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(pingPin, HIGH);
-  delayMicroseconds(5);
-  digitalWrite(pingPin, LOW);
-
-  pinMode(pingPin, INPUT);
-  duration = pulseIn(pingPin, HIGH);
-  cm = microsecondsToCentimeters(duration);
-
-  if(cm < 40) {
-    servo1.write(90);
-    lcd.setCursor(0,1);
-    lcd.print("Door:OPEN   ");
-  } else {
-    servo1.write(0);
-    lcd.setCursor(0,1);
-    lcd.print("Door:CLOSED ");
-  }
-
-  int pir = digitalRead(2);
-  if(pir == HIGH) {
-    digitalWrite(4, HIGH);
-    lcd.setCursor(10,0);
-    lcd.print("LED:ON ");
-  } else {
-    digitalWrite(4, LOW);
-    lcd.setCursor(10,0);
-    lcd.print("LED:OFF");
-  }
-
-  
-  value = analogRead(tmp) * 0.004882814;
-  value = (value - 0.5) * 100.0;
-  lcd.setCursor(0,0);
-  lcd.print("Tmp:");
-  lcd.print(value);
-
-  Serial.print("temperature: ");
-  Serial.println(value);
-
-  if(value > 20) {
-    digitalWrite(12, HIGH);  // Hot LED ON
-    digitalWrite(13, LOW);
-  } else {
-    digitalWrite(12, LOW);
-    digitalWrite(13, HIGH);  // Cold LED ON
-  }
-
-  delay(500);
-}
-
-long microsecondsToCentimeters(long microseconds) {
-  return microseconds / 29 / 2;
-}
-~~~
+```
 
 
 # Procedure:
@@ -133,9 +101,7 @@ long microsecondsToCentimeters(long microseconds) {
 
 # Output:
 
-
-https://github.com/user-attachments/assets/53eb5884-270f-42f2-9109-77e90176da00
-
+https://github.com/user-attachments/assets/e70943d7-846c-43a6-8aae-f626b46b34d9
 
 
 # Result:
